@@ -1,6 +1,6 @@
 {
     "name": "redocus",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "description": "A tiny static site generator using React and MDX",
     "author": {
         "name": "Josemi Juanes",
