@@ -1,0 +1,7 @@
+## Output files and folders
+www/
+
+## Other files and folders
+node_modules/
+package-lock.json
+yarn.lock
