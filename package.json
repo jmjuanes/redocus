@@ -1,0 +1,38 @@
+{
+    "name": "redocus",
+    "version": "0.0.0",
+    "description": "A tiny static site generator using React and MDX",
+    "author": {
+        "name": "Josemi Juanes",
+        "email": "hello@josemi.xyz"
+    },
+    "license": "MIT",
+    "repository": "https://github.com/jmjuanes/redocus",
+    "bugs": "https://github.com/jmjuanes/redocus/issues",
+    "bin": {
+        "redocus": "index.js"
+    },
+    "keywords": [
+        "static",
+        "site",
+        "docs",
+        "react",
+        "mdx"
+    ],
+    "files": [
+        "README.md",
+        "LICENSE",
+        "index.js"
+    ],
+    "dependencies": {
+        "@babel/core": "^7.23.0",
+        "@babel/preset-react": "^7.23.0",
+        "@babel/register": "^7.23.0",
+        "gray-matter": "^4.0.3"
+    },
+    "peerDependencies": {
+        "@mdx-js/mdx": ">=2.3.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    }
+}
