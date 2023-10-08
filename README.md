@@ -84,6 +84,13 @@ The `pageComponents` field is an object that contains custom components which wi
 
 The `pageWrapper` field is a React component that will be used to wrap the entire generated page. You can use this component to provide a consistent layout or styling for all pages.
 
+### `createPages`
+
+- Type: function
+- Default: `null`
+
+The `createPages` field is a function that allows you to dynamically generate pages.
+
 ### `onPageCreate`
 
 - Type: function
