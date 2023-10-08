@@ -35,75 +35,87 @@ const initialize = () => {
     ]);
 };
 
-initialize().then(initialData => {
+initialize().then(async initialData => {
     const [mdx, config] = initialData;
     log("Starting build...");
-    const inputPath = path.resolve(process.cwd(), config.input || "./pages");
-    const outputPath = path.resolve(process.cwd(), config.output || "./www");
-    Promise.resolve(true)
-        .then(() => {
-            // Make sure the output folder exists
-            if (!existsSync(outputPath)) {
-                return fs.mkdir(outputPath, {recursive: true});
-            }
-            // Continue
-            return true;
-        })
-        .then(() => {
-            //Make sure inputPath folder exists
-            if (!existsSync(inputPath)) {
-                log(`ERROR: input folder '${inputPath}' does not exist`);
-                return process.exit(1);
-            }
-            log(`Reading .mdx files from '${inputPath}'`);
-            return fs.readdir(inputPath);
-        })
-        .then(files => files.filter(file => path.extname(file) === ".mdx"))
-        .then(files => {
-            return Promise.all(files.map(file => {
-                return fs.readFile(path.join(inputPath, file), "utf8")
-                    .then(fileContent => {
-                        const {data, content} = matter(fileContent);
-                        return {
-                            data: data,
-                            content: content,
-                            name: path.basename(file, ".mdx"),
-                            fileName: path.basename(file, ".mdx") + ".html",
-                            url: path.join("./", path.basename(file, ".mdx")),
-                        };
-                    })
-                    .then(page => {
-                        return isFn(config.onPageCreate) ? config.onPageCreate(page) : page;
+    const ctx = {
+        pages: [],
+        inputPath: path.resolve(process.cwd(), config.input || "./pages"),
+        outputPath: path.resolve(process.cwd(), config.output || "./www"),
+    };
+    // Initialize pages actions
+    const pagesActions = {
+        createPage: page => {
+            ctx.pages.push(page);
+        },
+        deletePage: page => {
+            ctx.pages = ctx.pages.filter(p => p !== page);
+        },
+        createPageFromMarkdownFile: async filePath => {
+            const fileContent = await fs.readFile(filePath, "utf8");
+            const {data, content} = matter(fileContent);
+            const component = await mdx.evaluate(content, {...runtime});
+            ctx.pages.push({
+                data: data,
+                component: component.default,
+                name: path.basename(filePath, ".mdx"),
+                path: path.basename(filePath, ".mdx") + ".html",
+                url: path.join("./", path.basename(filePath, ".mdx")),
+            });
+        },
+    };
+    // Make sure the output folder exists
+    if (!existsSync(ctx.outputPath)) {
+        await fs.mkdir(ctx.outputPath, {recursive: true});
+    }
+    // Read files from input path
+    if (existsSync(config.inputPath)) {
+        log(`Reading .mdx files from '${ctx.inputPath}'`);
+        const inputFiles = await fs.readdir(ctx.inputPath);
+        for (let index = 0; index < inputFiles.length; index++) {
+            const file = inputFiles[index];
+            // We can process only '.mdx' files at this time
+            if (path.extname(file) === "mdx") {
+                const filePath = path.join(ctx.inputPath, file);
+                await pagesActions.createPageFromMarkdownFile(filePath);
+                // Check if a custom onPageCreate has been provided
+                if (isFn(config.onPageCreate)) {
+                    await config.onPageCreate({
+                        page: ctx.pages[ctx.pages.length - 1],
+                        actions: pagesActions,
                     });
-            }));
-        })
-        .then(pages =>  pages.flat().filter(page => !!page))
-        .then(async pages => {
-            const PageWrapper = isFn(config.pageWrapper) ? config.pageWrapper : p => p.element;
-            for (let index = 0; index < pages.length; index++) {
-                const page = pages[index];
-                const pagePath = path.join(outputPath, page.fileName);
-                const pageComponent = await mdx.evaluate(page.content, {...runtime});
-                const PageContent = React.createElement(PageWrapper, {
-                    site: config.siteMetadata || {},
-                    page: page,
-                    element: React.createElement(pageComponent.default, {
-                        components: config.pageComponents || {},
-                        site: config.siteMetadata || {},
-                        page: page,
-                        pages: pages,
-                    }),
-                    components: config.pageComponents || {},
-                    pages: pages,
-                });
-                // Generate HTML string from page content
-                const content = renderToStaticMarkup(PageContent);
-                await fs.writeFile(pagePath, content, "utf8");
-                log(`Saved file '${pagePath}'`);
+                }
             }
-            return true;
-        })
-        .then(() => {
-            log("Build finished.");
+        }
+    }
+    // Call the createPages method
+    if (isFn(config.createPages)) {
+        await config.createPages({
+            actions: pagesActions,
         });
+    }
+    // Filter pages to keep only valid pages
+    ctx.pages = ctx.pages.filter(page => !!page);
+    const PageWrapper = isFn(config.pageWrapper) ? config.pageWrapper : p => p.element;
+    for (let index = 0; index < ctx.pages.length; index++) {
+        const page = ctx.pages[index];
+        const pagePath = path.join(ctx.outputPath, page.path);
+        const PageContent = React.createElement(PageWrapper, {
+            site: config.siteMetadata || {},
+            page: page,
+            element: React.createElement(page.component, {
+                components: config.pageComponents || {},
+                site: config.siteMetadata || {},
+                page: page,
+                pages: ctx.pages,
+            }),
+            components: config.pageComponents || {},
+            pages: ctx.pages,
+        });
+        // Generate HTML string from page content
+        const content = renderToStaticMarkup(PageContent);
+        await fs.writeFile(pagePath, content, "utf8");
+        log(`Saved file '${pagePath}'`);
+    }
+    log("Build finished.");
 });
