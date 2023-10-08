@@ -26,8 +26,8 @@
     ],
     "dependencies": {
         "@babel/core": "^7.23.0",
-        "@babel/preset-react": "^7.23.0",
-        "@babel/register": "^7.23.0",
+        "@babel/preset-react": "^7.22.15",
+        "@babel/register": "^7.22.15",
         "gray-matter": "^4.0.3"
     },
     "peerDependencies": {

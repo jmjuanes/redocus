@@ -9,7 +9,7 @@ const runtime = require("react/jsx-runtime");
 const matter = require("gray-matter");
 
 // Register require hook for parsing jsx
-require("@babel/require")({
+require("@babel/register")({
     presets: [
         "@babel/preset-react",
     ],
