@@ -69,13 +69,13 @@ initialize().then(async initialData => {
         await fs.mkdir(ctx.outputPath, {recursive: true});
     }
     // Read files from input path
-    if (existsSync(config.inputPath)) {
+    if (existsSync(ctx.inputPath)) {
         log(`Reading .mdx files from '${ctx.inputPath}'`);
         const inputFiles = await fs.readdir(ctx.inputPath);
         for (let index = 0; index < inputFiles.length; index++) {
             const file = inputFiles[index];
             // We can process only '.mdx' files at this time
-            if (path.extname(file) === "mdx") {
+            if (path.extname(file) === ".mdx") {
                 const filePath = path.join(ctx.inputPath, file);
                 await pagesActions.createPageFromMarkdownFile(filePath);
                 // Check if a custom onPageCreate has been provided
