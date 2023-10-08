@@ -61,7 +61,7 @@ initialize().then(initialData => {
         .then(files => files.filter(file => path.extname(file) === ".mdx"))
         .then(files => {
             return Promise.all(files.map(file => {
-                return fs.readFile(path.join(docsFolder, file), "utf8")
+                return fs.readFile(path.join(inputPath, file), "utf8")
                     .then(fileContent => {
                         const {data, content} = matter(fileContent);
                         return {
