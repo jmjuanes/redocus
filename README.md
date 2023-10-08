@@ -41,9 +41,8 @@ module.exports = {
             <div>{props.element}</div>
         );
     }
-    onPageCreate: page => {
+    onPageCreate: ({page, actions}) => {
         // Perform actions on each created page
-        return page;
     },
 };
 ```
