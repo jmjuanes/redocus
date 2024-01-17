@@ -5,8 +5,6 @@ const {existsSync} = require("node:fs");
 const path = require("node:path");
 const React = require("react");
 const {renderToStaticMarkup} = require("react-dom/server");
-const runtime = require("react/jsx-runtime");
-const matter = require("gray-matter");
 
 // Register require hook for parsing jsx
 require("@babel/register")({
@@ -18,98 +16,101 @@ require("@babel/register")({
 const log = msg => console.log(`[redocus] ${msg}`);
 const isFn = fn => typeof fn === "function";
 
-const initialize = () => {
-    const resolveConfig = () => {
-        const configPath = path.join(process.cwd(), "redocus.config.js");
-        if (!existsSync(configPath)) {
-            log(`ERROR: configuration file '${configPath}' not found.`);
-            process.exit(1);
-        }
-        // Import and resolve configuration
-        const config = require(configPath);
-        return Promise.resolve(config);
-    };
-    return Promise.all([
-        import("@mdx-js/mdx"),
-        resolveConfig(),
-    ]);
+const resolveConfig = () => {
+    const configPath = path.join(process.cwd(), "redocus.config.js");
+    if (!existsSync(configPath)) {
+        log(`ERROR: configuration file '${configPath}' not found.`);
+        process.exit(1);
+    }
+    // Import and resolve configuration
+    const config = require(configPath);
+    return Promise.resolve(config);
 };
 
-initialize().then(async initialData => {
-    const [mdx, config] = initialData;
-    log("Starting build...");
+const build = async () => {
+    const config = await resolveConfig();
+    log("build started");
     const ctx = {
+        siteMetadata: config.siteMetadata || {},
+        components: config.pageComponents || {},
+        wrapper: isFn(config.pageWrapper) ? config.pageWrapper : p => p.element,
         pages: [],
         inputPath: path.resolve(process.cwd(), config.input || "./pages"),
         outputPath: path.resolve(process.cwd(), config.output || "./www"),
+        plugins: [
+            config,
+            ...(Array.isArray(config.plugins) ? config.plugins : []),
+        ],
+    };
+    // Call plugins
+    const callPlugins = async (listenerName, extraArgs = {}) => {
+        for (let i = 0; i < ctx.plugins.length; i++) {
+            if (isFn(ctx.plugins[i][listenerName])) {
+                await ctx.plugins[i][listenerName]({ctx, actions, log, ...extraArgs});
+            }
+        }
     };
     // Initialize pages actions
-    const pagesActions = {
+    const actions = {
         createPage: page => {
-            ctx.pages.push(page);
+            ctx.pages.push({
+                ...page,
+                data: page.data || {},
+                name: page.name || path.basename(page.path, ".html"),
+                url: page.url || path.join("./", path.basename(page.path, ".html")),
+            });
         },
         deletePage: page => {
             ctx.pages = ctx.pages.filter(p => p !== page);
         },
-        createPageFromMarkdownFile: async filePath => {
-            const fileContent = await fs.readFile(filePath, "utf8");
-            const {data, content} = matter(fileContent);
-            const component = await mdx.evaluate(content, {...runtime});
-            ctx.pages.push({
-                data: data,
-                component: component.default,
-                name: path.basename(filePath, ".mdx"),
-                path: path.basename(filePath, ".mdx") + ".html",
-                url: path.join("./", path.basename(filePath, ".mdx")),
-            });
-        },
     };
+    // Call the onInit hook
+    await callPlugins("onInit", {});
     // Make sure the output folder exists
     if (!existsSync(ctx.outputPath)) {
         await fs.mkdir(ctx.outputPath, {recursive: true});
     }
     // Read files from input path
     if (existsSync(ctx.inputPath)) {
-        log(`Reading .mdx files from '${ctx.inputPath}'`);
+        log(`reading files from '${ctx.inputPath}'`);
         const inputFiles = await fs.readdir(ctx.inputPath);
         for (let index = 0; index < inputFiles.length; index++) {
             const file = inputFiles[index];
-            // We can process only '.mdx' files at this time
-            if (path.extname(file) === ".mdx") {
+            // We can process only '.jsx' files at this time
+            if (path.extname(file) === ".jsx") {
                 const filePath = path.join(ctx.inputPath, file);
-                await pagesActions.createPageFromMarkdownFile(filePath);
-                // Check if a custom onPageCreate has been provided
-                if (isFn(config.onPageCreate)) {
-                    await config.onPageCreate({
-                        page: ctx.pages[ctx.pages.length - 1],
-                        actions: pagesActions,
-                    });
-                }
+                const component = require(filePath);
+                actions.createPage({
+                    component: component,
+                    data: component?.pageData || {},
+                    path: path.basename(filePath, ".jsx") + ".html",
+                });
+                // Call the onPageCreate hook
+                await callPlugins("onPageCreate", {
+                    page: ctx.pages[ctx.pages.length - 1],
+                });
             }
         }
     }
     // Call the createPages method
-    if (isFn(config.createPages)) {
-        await config.createPages({
-            actions: pagesActions,
-        });
-    }
+    await callPlugins("createPages", {});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
-    const PageWrapper = isFn(config.pageWrapper) ? config.pageWrapper : p => p.element;
+    const PageWrapper = ctx.wrapper || (p => p.element);
+    await callPlugins("onPreBuild", {});
     for (let index = 0; index < ctx.pages.length; index++) {
         const page = ctx.pages[index];
         const pagePath = path.join(ctx.outputPath, page.path);
         const PageContent = React.createElement(PageWrapper, {
-            site: config.siteMetadata || {},
+            site: ctx.siteMetadata,
             page: page,
             element: React.createElement(page.component, {
-                components: config.pageComponents || {},
-                site: config.siteMetadata || {},
+                components: ctx.components,
+                site: ctx.siteMetadata,
                 page: page,
                 pages: ctx.pages,
             }),
-            components: config.pageComponents || {},
+            components: ctx.components,
             pages: ctx.pages,
         });
         // Generate HTML string from page content
@@ -117,5 +118,8 @@ initialize().then(async initialData => {
         await fs.writeFile(pagePath, content, "utf8");
         log(`Saved file '${pagePath}'`);
     }
-    log("Build finished.");
-});
+    await callPlugins("onPostBuild", {});
+    log("build finished.");
+};
+
+build();
