@@ -1,19 +1,19 @@
 # Redocus
 
-A Node.js tool that enables you to generate static sites using [React](https://react.dev) and [MDX](https://mdxjs.com). It allows you to easily convert `.mdx` files into static HTML pages with the ability to customize the rendering using React components and pass site metadata as props to the pages.
+A Node.js tool that enables you to generate static sites using [React](https://react.dev). It allows you to easily convert `.jsx` files into static HTML pages with the ability to customize the rendering using React components and pass site metadata as props to the pages.
 
 ## Installation
 
 You can install the package via npm:
 
 ```shell
-npm install --save-dev redocus react react-dom @mdx-js/mdx
+npm install --save-dev redocus react react-dom
 ```
 
 or using yarn:
 
 ```shell
-yarn add --dev redocus react react-dom @mdx-js/mdx
+yarn add --dev redocus react react-dom
 ```
 
 ## Configuration
@@ -54,7 +54,7 @@ The following configuration fields can be defined in this file:
 - Type: string
 - Default: `"pages"`
 
-The `input` field specifies the path of the folder containing the input `.mdx` files. By default, it assumes the folder is located at `"pages"`.
+The `input` field specifies the path of the folder containing the input `.jsx` files. By default, it assumes the folder is located at `"pages"`.
 
 ### `output`
 
@@ -75,7 +75,7 @@ The `siteMetadata` field is an object that contains information about your site.
 - Type: object
 - Default: `{}`
 
-The `pageComponents` field is an object that contains custom components which will be passed to the MDX compiler. These components can be used within your Markdown files to extend the functionality of MDX.
+The `pageComponents` field is an object that contains custom components which will be passed to each page component as `props.components`.
 
 ### `pageWrapper`
 
@@ -119,7 +119,7 @@ You can also add this command to the `scripts` section of your `package.json`:
 
 This will process the input Markdown files, apply the React components and layout, and generate the corresponding HTML files in the output directory.
 
-That's it! You now have a static site generated using React and MDX.
+That's it! You now have a static site generated using React.
 
 ## Contributing
 
