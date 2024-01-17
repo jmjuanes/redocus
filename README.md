@@ -89,14 +89,36 @@ The `pageWrapper` field is a React component that will be used to wrap the entir
 - Type: function
 - Default: `null`
 
-The `createPages` field is a function that allows you to dynamically generate pages.
+The `createPages` field is a hook function that allows you to dynamically generate pages.
+
+### `onInit`
+
+- Type: function.
+- Default: `null`
+
+The `onInit` field is a hook function that will be triggered after the initialization of redocus and before start reading pages from your `input` folder.
 
 ### `onPageCreate`
 
 - Type: function
 - Default: `null`
 
-The `onPageCreate` field is a hook that will be triggered each time a page is found during the static site generation process. You can use this hook to perform additional actions or customizations for each page.
+The `onPageCreate` field is a hook function that will be triggered each time a page is found during the static site generation process. You can use this hook to perform additional actions or customizations for each page.
+
+### `onPreBuild`
+
+- Type: function
+- Default: `null`
+
+The `onPreBuild` field is a hook function that will be triggered after all `.jsx` files have been processed and before generating the final HTML pages.
+
+### `onPostBuild`
+
+- Type: function
+- Default: `null`
+
+The `onPostBuild` field is a hook function that will be triggered after the build process is finished and all HTML pages have been saved.
+
 
 ## Usage
 
