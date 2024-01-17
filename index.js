@@ -27,6 +27,13 @@ const resolveConfig = () => {
     return Promise.resolve(config);
 };
 
+const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content}) => {
+    return React.createElement("html", {...htmlAttributes}, 
+        React.createElement("head", {}, ...headComponents),
+        React.createElement("body", {...bodyAttributes}, content),
+    );
+};
+
 const build = async () => {
     const config = await resolveConfig();
     log("build started");
@@ -43,10 +50,10 @@ const build = async () => {
         ],
     };
     // Call plugins
-    const callPlugins = async (listenerName, extraArgs = {}) => {
+    const callHook = async (listenerName, extraArgs = {}) => {
         for (let i = 0; i < ctx.plugins.length; i++) {
             if (isFn(ctx.plugins[i][listenerName])) {
-                await ctx.plugins[i][listenerName]({ctx, actions, log, ...extraArgs});
+                await ctx.plugins[i][listenerName]({ctx, log, ...extraArgs});
             }
         }
     };
@@ -65,7 +72,7 @@ const build = async () => {
         },
     };
     // Call the onInit hook
-    await callPlugins("onInit", {});
+    await callHook("onInit", {});
     // Make sure the output folder exists
     if (!existsSync(ctx.outputPath)) {
         await fs.mkdir(ctx.outputPath, {recursive: true});
@@ -85,40 +92,58 @@ const build = async () => {
                     data: component?.pageData || {},
                     path: path.basename(filePath, ".jsx") + ".html",
                 });
-                // Call the onPageCreate hook
-                await callPlugins("onPageCreate", {
-                    page: ctx.pages[ctx.pages.length - 1],
-                });
+                const page = ctx.pages[ctx.pages.length - 1];
+                await callHook("onPageCreate", {page, actions});
             }
         }
     }
     // Call the createPages method
-    await callPlugins("createPages", {});
+    await callHook("createPages", {actions});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
     const PageWrapper = ctx.wrapper || (p => p.element);
-    await callPlugins("onPreBuild", {});
+    await callHook("onPreBuild", {});
     for (let index = 0; index < ctx.pages.length; index++) {
         const page = ctx.pages[index];
         const pagePath = path.join(ctx.outputPath, page.path);
-        const PageContent = React.createElement(PageWrapper, {
-            site: ctx.siteMetadata,
-            page: page,
-            element: React.createElement(page.component, {
-                components: ctx.components,
+        const renderOptions = {
+            htmlAttributes: {},
+            bodyAttributes: {},
+            headComponents: [],
+            content: React.createElement(PageWrapper, {
                 site: ctx.siteMetadata,
                 page: page,
+                element: React.createElement(page.component, {
+                    components: ctx.components,
+                    site: ctx.siteMetadata,
+                    page: page,
+                    pages: ctx.pages,
+                }),
+                components: ctx.components,
                 pages: ctx.pages,
             }),
-            components: ctx.components,
-            pages: ctx.pages,
+        };
+        // Call the onRender hook
+        await callHook("onRender", {
+            page: page,
+            setHtmlAttributes: newAttributes => {
+                renderOptions.htmlAttributes = newAttributes;
+            },
+            setBodyAttributes: newAttributes => {
+                renderOptions.bodyAttributes = newAttributes;
+            },
+            setHeadComponents: newComponents => {
+                renderOptions.headComponents = newComponents;
+            },
         });
         // Generate HTML string from page content
-        const content = renderToStaticMarkup(PageContent);
+        const content = renderToStaticMarkup(
+            generateHtml(renderOptions)
+        );
         await fs.writeFile(pagePath, content, "utf8");
-        log(`Saved file '${pagePath}'`);
+        log(`saved file '${pagePath}'`);
     }
-    await callPlugins("onPostBuild", {});
+    await callHook("onPostBuild", {});
     log("build finished.");
 };
 
