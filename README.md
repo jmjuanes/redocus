@@ -84,6 +84,13 @@ The `pageComponents` field is an object that contains custom components which wi
 
 The `pageWrapper` field is a React component that will be used to wrap the entire generated page. You can use this component to provide a consistent layout or styling for all pages.
 
+### `plugins`
+
+- Type: array
+- Default: `[]`
+
+An array of plugins to apply.
+
 ### `createPages`
 
 - Type: function
@@ -139,7 +146,7 @@ You can also add this command to the `scripts` section of your `package.json`:
 }
 ```
 
-This will process the input Markdown files, apply the React components and layout, and generate the corresponding HTML files in the output directory.
+This will process the input JSX files, apply the React components and layout, and generate the corresponding HTML files in the output directory.
 
 That's it! You now have a static site generated using React.
 
