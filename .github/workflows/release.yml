@@ -3,21 +3,22 @@ on:
   push:
     tags: ['*']
 
+## Set permissions to the github token
+## https://github.com/softprops/action-gh-release#permissions 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release
     if: ${{ github.repository == 'jmjuanes/redocus' }}
     runs-on: ubuntu-latest
-    ## Set permissions to the github token
-    ## https://github.com/softprops/action-gh-release#permissions 
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: softprops/action-gh-release@v1
 
-  publish:
-    name: Publish
+  publish-main:
+    name: Publish main package
     if: ${{ github.repository == 'jmjuanes/redocus' }}
     runs-on: ubuntu-latest
     steps:
@@ -27,5 +28,24 @@ jobs:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
       - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-pkgs:
+    name: Publish packages
+    if: ${{ github.repository == 'jmjuanes/redocus' }}
+    runs-on: ubuntu-latest
+    needs: [publish-main]
+    strategy:
+      matrix:
+        package: [plugin-mdx]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+      - run: yarn release
+      - run: cd packages/${{ matrix.package }} && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -12,6 +12,9 @@
     "bin": {
         "redocus": "index.js"
     },
+    "scripts": {
+        "release": "node ./scripts/release.js"
+    },
     "keywords": [
         "static",
         "site",
