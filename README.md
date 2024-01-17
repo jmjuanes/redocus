@@ -1,5 +1,10 @@
 # Redocus
 
+![npm version](https://badgen.net/npm/v/redocus?labelColor=1d2734&color=21bf81)
+![license](https://badgen.net/github/license/jmjuanes/redocus?labelColor=1d2734&color=21bf81)
+
+> **Redocus** is an experimental package. Its API is not stable and may change without notice. **Use it at your own risk.**
+
 A Node.js tool that enables you to generate static sites using [React](https://react.dev). It allows you to easily convert `.jsx` files into static HTML pages with the ability to customize the rendering using React components and pass site metadata as props to the pages.
 
 ## Installation
