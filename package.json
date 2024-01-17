@@ -25,14 +25,12 @@
         "index.js"
     ],
     "dependencies": {
-        "@babel/core": "^7.23.0",
-        "@babel/preset-react": "^7.22.15",
-        "@babel/register": "^7.22.15",
-        "gray-matter": "^4.0.3"
+        "@babel/core": "^7.23.7",
+        "@babel/preset-react": "^7.23.3",
+        "@babel/register": "^7.23.7"
     },
     "peerDependencies": {
-        "@mdx-js/mdx": ">=2.3.0",
-        "react": ">=18.0.0",
-        "react-dom": ">=18.0.0"
+        "react": ">=18.2.0",
+        "react-dom": ">=18.2.0"
     }
 }
