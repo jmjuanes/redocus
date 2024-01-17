@@ -53,7 +53,7 @@ const build = async () => {
     const callHook = async (listenerName, extraArgs = {}) => {
         for (let i = 0; i < ctx.plugins.length; i++) {
             if (isFn(ctx.plugins[i][listenerName])) {
-                await ctx.plugins[i][listenerName]({ctx, actions, log, ...extraArgs});
+                await ctx.plugins[i][listenerName]({ctx, log, ...extraArgs});
             }
         }
     };
@@ -92,15 +92,13 @@ const build = async () => {
                     data: component?.pageData || {},
                     path: path.basename(filePath, ".jsx") + ".html",
                 });
-                // Call the onPageCreate hook
-                await callHook("onPageCreate", {
-                    page: ctx.pages[ctx.pages.length - 1],
-                });
+                const page = ctx.pages[ctx.pages.length - 1];
+                await callHook("onPageCreate", {page, actions});
             }
         }
     }
     // Call the createPages method
-    await callHook("createPages", {});
+    await callHook("createPages", {actions});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
     const PageWrapper = ctx.wrapper || (p => p.element);
