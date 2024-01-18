@@ -24,15 +24,23 @@ const importPackages = () => {
     ]);
 };
 
-const resolveConfig = () => {
-    const configPath = path.join(process.cwd(), "redocus.config.js");
-    if (!existsSync(configPath)) {
-        log(`ERROR: configuration file '${configPath}' not found.`);
-        process.exit(1);
+const resolveConfig = (args = []) => {
+    const resolveConfigurationFile = configFile => {
+        const configPath = path.resolve(process.cwd(), configFile);
+        if (!existsSync(configPath)) {
+            log(`ERROR: configuration file '${configPath}' not found.`);
+            process.exit(1);
+        }
+        // Import and resolve configuration
+        const config = require(configPath);
+        return Promise.resolve(config);
+    };
+    // Check if a configuration has been provided via args
+    if (args.length === 2 && (args[0] === "--config" || args[0] === "-c")) {
+        return resolveConfigurationFile(args[1]);
     }
-    // Import and resolve configuration
-    const config = require(configPath);
-    return Promise.resolve(config);
+    // Default: resolve 'redocus.config.js' 
+    return resolveConfigurationFile("redocus.config.js");
 };
 
 const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content}) => {
@@ -43,9 +51,9 @@ const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content})
     return renderToStaticMarkup(element);
 };
 
-const build = async () => {
+const build = async args => {
     const [mdx] = await importPackages();
-    const config = await resolveConfig();
+    const config = await resolveConfig(args);
     log("build started");
     const ctx = {
         pages: [],
@@ -145,4 +153,4 @@ const build = async () => {
     log("build finished.");
 };
 
-build();
+build(process.argv?.slice(2));
