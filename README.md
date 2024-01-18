@@ -5,20 +5,20 @@
 
 > **Redocus** is an experimental package. Its API is not stable and may change without notice. **Use it at your own risk.**
 
-A Node.js tool that enables you to generate static sites using [React](https://react.dev). It allows you to easily convert `.jsx` files into static HTML pages with the ability to customize the rendering using React components and pass site metadata as props to the pages.
+A Node.js tool that enables you to generate static sites using [React](https://react.dev) and [MDX](https://mdxjs.com). It allows you to easily convert `.mdx` files into static HTML pages with the ability to customize the rendering using React components and pass site metadata as props to the pages.
 
 ## Installation
 
 You can install the package via npm:
 
 ```shell
-npm install --save-dev redocus react react-dom
+npm install --save-dev redocus react react-dom @mdx-js/mdx
 ```
 
 or using yarn:
 
 ```shell
-yarn add --dev redocus react react-dom
+yarn add --dev redocus react react-dom @mdx-js/mdx
 ```
 
 ## Configuration
@@ -59,7 +59,7 @@ The following configuration fields can be defined in this file:
 - Type: string
 - Default: `"pages"`
 
-The `input` field specifies the path of the folder containing the input `.jsx` files. By default, it assumes the folder is located at `"pages"`.
+The `input` field specifies the path of the folder containing the input `.mdx` files. By default, it assumes the folder is located at `"pages"`.
 
 ### `output`
 
@@ -151,7 +151,7 @@ You can also add this command to the `scripts` section of your `package.json`:
 }
 ```
 
-This will process the input JSX files, apply the React components and layout, and generate the corresponding HTML files in the output directory.
+This will process the input MDX files, apply the React components and layout, and generate the corresponding HTML files in the output directory.
 
 That's it! You now have a static site generated using React.
 

@@ -4,7 +4,9 @@ const fs = require("node:fs/promises");
 const {existsSync} = require("node:fs");
 const path = require("node:path");
 const React = require("react");
+const runtime = require("react/jsx-runtime");
 const {renderToStaticMarkup} = require("react-dom/server");
+const matter = require("gray-matter");
 
 // Register require hook for parsing jsx
 require("@babel/register")({
@@ -14,7 +16,13 @@ require("@babel/register")({
 });
 
 const log = msg => console.log(`[redocus] ${msg}`);
-const isFn = fn => typeof fn === "function";
+
+// Import ESM packages
+const importPackages = () => {
+    return Promise.all([
+        import("@mdx-js/mdx"),
+    ]);
+};
 
 const resolveConfig = () => {
     const configPath = path.join(process.cwd(), "redocus.config.js");
@@ -28,33 +36,26 @@ const resolveConfig = () => {
 };
 
 const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content}) => {
-    return React.createElement("html", {...htmlAttributes}, 
+    const element = React.createElement("html", {...htmlAttributes}, 
         React.createElement("head", {}, ...headComponents),
         React.createElement("body", {...bodyAttributes}, content),
     );
+    return renderToStaticMarkup(element);
 };
 
 const build = async () => {
+    const [mdx] = await importPackages();
     const config = await resolveConfig();
     log("build started");
     const ctx = {
-        siteMetadata: config.siteMetadata || {},
-        components: config.pageComponents || {},
-        wrapper: isFn(config.pageWrapper) ? config.pageWrapper : p => p.element,
         pages: [],
         inputPath: path.resolve(process.cwd(), config.input || "./pages"),
         outputPath: path.resolve(process.cwd(), config.output || "./www"),
-        plugins: [
-            config,
-            ...(Array.isArray(config.plugins) ? config.plugins : []),
-        ],
     };
-    // Call plugins
+    // Tiny helper method to execute a hook with the additional argument
     const callHook = async (listenerName, extraArgs = {}) => {
-        for (let i = 0; i < ctx.plugins.length; i++) {
-            if (isFn(ctx.plugins[i][listenerName])) {
-                await ctx.plugins[i][listenerName]({ctx, log, ...extraArgs});
-            }
+        if (typeof config[listenerName] === "function") {
+            await config[listenerName]({ctx, log, ...extraArgs});
         }
     };
     // Initialize pages actions
@@ -65,6 +66,18 @@ const build = async () => {
                 data: page.data || {},
                 name: page.name || path.basename(page.path, ".html"),
                 url: page.url || path.join("./", path.basename(page.path, ".html")),
+            });
+        },
+        createPageFromMarkdownFile: async filePath => {
+            const fileContent = await fs.readFile(filePath, "utf8");
+            const {data, content} = matter(fileContent);
+            const component = await mdx.evaluate(content, {...runtime});
+            ctx.pages.push({
+                data: data,
+                component: component.default,
+                name: path.basename(filePath, ".mdx"),
+                path: path.basename(filePath, ".mdx") + ".html",
+                url: path.join("./", path.basename(filePath, ".mdx")),
             });
         },
         deletePage: page => {
@@ -83,15 +96,8 @@ const build = async () => {
         const inputFiles = await fs.readdir(ctx.inputPath);
         for (let index = 0; index < inputFiles.length; index++) {
             const file = inputFiles[index];
-            // We can process only '.jsx' files at this time
-            if (path.extname(file) === ".jsx") {
-                const filePath = path.join(ctx.inputPath, file);
-                const component = require(filePath);
-                actions.createPage({
-                    component: component,
-                    data: component?.pageData || {},
-                    path: path.basename(filePath, ".jsx") + ".html",
-                });
+            if (path.extname(file) === ".mdx") {
+                await actions.createPageFromMarkdownFile(path.join(ctx.inputPath, file));
                 const page = ctx.pages[ctx.pages.length - 1];
                 await callHook("onPageCreate", {page, actions});
             }
@@ -101,45 +107,37 @@ const build = async () => {
     await callHook("createPages", {actions});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
-    const PageWrapper = ctx.wrapper || (p => p.element);
+    const PageWrapper = typeof config.pageWrapper === "function" ? config.pageWrapper : (p => p.element);
     await callHook("onPreBuild", {});
     for (let index = 0; index < ctx.pages.length; index++) {
         const page = ctx.pages[index];
         const pagePath = path.join(ctx.outputPath, page.path);
-        const renderOptions = {
+        const render = {
             htmlAttributes: {},
             bodyAttributes: {},
             headComponents: [],
             content: React.createElement(PageWrapper, {
-                site: ctx.siteMetadata,
+                site: config.siteMetadata || {},
                 page: page,
                 element: React.createElement(page.component, {
-                    components: ctx.components,
-                    site: ctx.siteMetadata,
+                    components: config.pageComponents || {},
+                    site: config.siteMetadata || {},
                     page: page,
                     pages: ctx.pages,
                 }),
-                components: ctx.components,
+                components: config.pageComponents || {},
                 pages: ctx.pages,
             }),
         };
         // Call the onRender hook
         await callHook("onRender", {
             page: page,
-            setHtmlAttributes: newAttributes => {
-                renderOptions.htmlAttributes = newAttributes;
-            },
-            setBodyAttributes: newAttributes => {
-                renderOptions.bodyAttributes = newAttributes;
-            },
-            setHeadComponents: newComponents => {
-                renderOptions.headComponents = newComponents;
-            },
+            setHtmlAttributes: attr => Object.assign(render.htmlAttributes, attr),
+            setBodyAttributes: attr => Object.assign(render.bodyAttributes, attr),
+            setHeadComponents: components => render.headComponents = components,
         });
         // Generate HTML string from page content
-        const content = renderToStaticMarkup(
-            generateHtml(renderOptions)
-        );
+        const content = generateHtml(render);
         await fs.writeFile(pagePath, content, "utf8");
         log(`saved file '${pagePath}'`);
     }
