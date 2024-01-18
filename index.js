@@ -16,12 +16,11 @@ require("@babel/register")({
 });
 
 const log = msg => console.log(`[redocus] ${msg}`);
+const isFn = fn => typeof fn === "function";
 
 // Import ESM packages
-const importPackages = () => {
-    return Promise.all([
-        import("@mdx-js/mdx"),
-    ]);
+const importPackages = pkgs => {
+    return Promise.all(pkgs.map(pkgName => import(pkgName)));
 };
 
 const resolveConfig = (args = []) => {
@@ -40,7 +39,7 @@ const resolveConfig = (args = []) => {
         return resolveConfigurationFile(args[1]);
     }
     // Default: resolve 'redocus.config.js' 
-    return resolveConfigurationFile("redocus.config.js");
+    return resolveConfigurationFile("./redocus.config.js");
 };
 
 const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content}) => {
@@ -52,7 +51,7 @@ const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content})
 };
 
 const build = async args => {
-    const [mdx] = await importPackages();
+    const [mdx] = await importPackages(["@mdx-js/mdx"]);
     const config = await resolveConfig(args);
     log("build started");
     const ctx = {
@@ -68,14 +67,7 @@ const build = async args => {
     };
     // Initialize pages actions
     const actions = {
-        createPage: page => {
-            ctx.pages.push({
-                ...page,
-                data: page.data || {},
-                name: page.name || path.basename(page.path, ".html"),
-                url: page.url || path.join("./", path.basename(page.path, ".html")),
-            });
-        },
+        createPage: page => ctx.pages.push(page),
         createPageFromMarkdownFile: async filePath => {
             const fileContent = await fs.readFile(filePath, "utf8");
             const {data, content} = matter(fileContent);
@@ -115,7 +107,7 @@ const build = async args => {
     await callHook("createPages", {actions});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
-    const PageWrapper = typeof config.pageWrapper === "function" ? config.pageWrapper : (p => p.element);
+    const PageWrapper = isFn(config.pageWrapper) ? config.pageWrapper : (p => p.element);
     await callHook("onPreBuild", {});
     for (let index = 0; index < ctx.pages.length; index++) {
         const page = ctx.pages[index];
