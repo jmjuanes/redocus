@@ -16,7 +16,6 @@ require("@babel/register")({
 });
 
 const log = msg => console.log(`[redocus] ${msg}`);
-const isFn = fn => typeof fn === "function";
 
 // Import ESM packages
 const importPackages = pkgs => {
@@ -77,7 +76,7 @@ const build = async args => {
                 component: component.default,
                 name: path.basename(filePath, ".mdx"),
                 path: path.basename(filePath, ".mdx") + ".html",
-                url: path.join("./", path.basename(filePath, ".mdx")),
+                url: "./" + path.basename(filePath, ".mdx"),
             });
         },
         deletePage: page => {
@@ -107,25 +106,40 @@ const build = async args => {
     await callHook("createPages", {actions});
     // Filter pages to keep only valid pages
     ctx.pages = ctx.pages.filter(page => !!page);
-    const PageWrapper = isFn(config.pageWrapper) ? config.pageWrapper : (p => p.element);
+    const PageWrapper = config?.extends?.pageWrapper || config?.pageWrapper || (p => p.element);
+    const pageComponents = {
+        ...config?.extends?.pageComponents,
+        ...config?.pageComponents,
+    };
     await callHook("onPreBuild", {});
     for (let index = 0; index < ctx.pages.length; index++) {
         const page = ctx.pages[index];
         const pagePath = path.join(ctx.outputPath, page.path);
         const render = {
-            htmlAttributes: {},
-            bodyAttributes: {},
-            headComponents: [],
+            htmlAttributes: {
+                ...config?.extends?.defaultHtmlAttributes,
+                ...config?.defaultHtmlAttributes,
+            },
+            bodyAttributes: {
+                ...config?.extends?.defaultBodyAttributes,
+                ...config?.defaultBodyAttributes,
+            },
+            headComponents: [
+                ...(config?.extends?.defaultHeadComponents || []),
+                ...(config?.defaultHeadComponents || []),
+            ],
             content: React.createElement(PageWrapper, {
                 site: config.siteMetadata || {},
+                theme: config.themeConfig || {},
                 page: page,
                 element: React.createElement(page.component, {
-                    components: config.pageComponents || {},
+                    components: pageComponents,
                     site: config.siteMetadata || {},
+                    theme: config.themeConfig || {},
                     page: page,
                     pages: ctx.pages,
                 }),
-                components: config.pageComponents || {},
+                components: pageComponents,
                 pages: ctx.pages,
             }),
         };
@@ -134,7 +148,7 @@ const build = async args => {
             page: page,
             setHtmlAttributes: attr => Object.assign(render.htmlAttributes, attr),
             setBodyAttributes: attr => Object.assign(render.bodyAttributes, attr),
-            setHeadComponents: components => render.headComponents = components,
+            setHeadComponents: comp => render.headComponents = [...render.headComponents, ...comp],
         });
         // Generate HTML string from page content
         const content = generateHtml(render);
