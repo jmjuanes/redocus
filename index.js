@@ -129,6 +129,8 @@ const build = async args => {
             },
             bodyAttributes: {},
             headComponents: [
+                site.title && React.createElement("meta", {name: "title", content: site.title}),
+                site.description && React.createElement("meta", {name: "description", content: site.description}),
                 ...(config?.extends?.headComponents || []),
                 ...(config?.headComponents || []),
             ],
@@ -150,7 +152,9 @@ const build = async args => {
             page: page,
             setHtmlAttributes: attr => Object.assign(render.htmlAttributes, attr),
             setBodyAttributes: attr => Object.assign(render.bodyAttributes, attr),
-            setHeadComponents: components => render.headComponents = [...render.headComponents, ...components],
+            setHeadComponents: components => {
+                render.headComponents = [...render.headComponents, ...components];
+            },
         });
         // Generate HTML string from page content
         const content = generateHtml(render);
