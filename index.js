@@ -62,8 +62,8 @@ const build = async args => {
     const outputPath = path.resolve(process.cwd(), config.output || "./www");
     const site = {
         title: config.title || "",
-        description: site.description || "",
-        data: site.data || {},
+        description: config.description || "",
+        data: config.data || {},
         pages: [],
     };
     // Tiny helper method to execute a hook with the additional argument
