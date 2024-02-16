@@ -58,25 +58,28 @@ const build = async args => {
     const [mdx] = await importPackages(["@mdx-js/mdx"]);
     const config = await resolveConfig(args);
     log("build started");
-    const ctx = {
+    const sourcePath = path.resolve(process.cwd(), config.source || config.input || "./pages");
+    const outputPath = path.resolve(process.cwd(), config.output || "./www");
+    const site = {
+        title: config.title || "",
+        description: site.description || "",
+        data: site.data || {},
         pages: [],
-        inputPath: path.resolve(process.cwd(), config.input || "./pages"),
-        outputPath: path.resolve(process.cwd(), config.output || "./www"),
     };
     // Tiny helper method to execute a hook with the additional argument
     const callHook = async (listenerName, extraArgs = {}) => {
         if (typeof config[listenerName] === "function") {
-            await config[listenerName]({ctx, log, ...extraArgs});
+            await config[listenerName]({site, inputPath, outputPath, ...extraArgs});
         }
     };
     // Initialize pages actions
     const actions = {
-        createPage: page => ctx.pages.push(page),
+        createPage: page => site.pages.push(page),
         createPageFromMarkdownFile: async filePath => {
             const fileContent = await fs.readFile(filePath, "utf8");
             const {data, content} = matter(fileContent);
             const component = await mdx.evaluate(content, {...runtime});
-            ctx.pages.push({
+            site.pages.push({
                 data: data,
                 component: component.default,
                 name: path.basename(filePath, ".mdx"),
@@ -85,67 +88,61 @@ const build = async args => {
             });
         },
         deletePage: page => {
-            ctx.pages = ctx.pages.filter(p => p !== page);
+            site.pages = site.pages.filter(p => p !== page);
         },
     };
     // Call the onInit hook
     await callHook("onInit", {});
     // Make sure the output folder exists
-    if (!existsSync(ctx.outputPath)) {
-        await fs.mkdir(ctx.outputPath, {recursive: true});
+    if (!existsSync(outputPath)) {
+        await fs.mkdir(outputPath, {recursive: true});
     }
-    // Read files from input path
-    if (existsSync(ctx.inputPath)) {
-        log(`reading files from '${ctx.inputPath}'`);
-        const inputFiles = await fs.readdir(ctx.inputPath);
+    // Read files from source path
+    if (existsSync(sourcePath)) {
+        log(`reading files from '${sourcePath}'`);
+        const inputFiles = await fs.readdir(sourcePath);
         for (let index = 0; index < inputFiles.length; index++) {
             const file = inputFiles[index];
             if (path.extname(file) === ".mdx") {
-                await actions.createPageFromMarkdownFile(path.join(ctx.inputPath, file));
-                const page = ctx.pages[ctx.pages.length - 1];
+                await actions.createPageFromMarkdownFile(path.join(sourcePath, file));
+                const page = site.pages[site.pages.length - 1];
                 await callHook("onPageCreate", {page, actions});
             }
         }
     }
     // Call the createPages method
-    await callHook("createPages", {actions});
+    await callHook("createPages", actions);
     // Filter pages to keep only valid pages
-    ctx.pages = ctx.pages.filter(page => !!page);
+    site.pages = site.pages.filter(page => !!page);
     const PageWrapper = config?.extends?.pageWrapper || config?.pageWrapper || (p => p.element);
     const pageComponents = {
         ...config?.extends?.pageComponents,
         ...config?.pageComponents,
     };
     await callHook("onPreBuild", {});
-    for (let index = 0; index < ctx.pages.length; index++) {
-        const page = ctx.pages[index];
-        const pagePath = path.join(ctx.outputPath, page.path);
+    for (let index = 0; index < site.pages.length; index++) {
+        const page = site.pages[index];
+        const pagePath = path.join(outputPath, page.path);
         const render = {
             htmlAttributes: {
-                ...config?.extends?.defaultHtmlAttributes,
-                ...config?.defaultHtmlAttributes,
+                lang: config?.lang || "en",
             },
-            bodyAttributes: {
-                ...config?.extends?.defaultBodyAttributes,
-                ...config?.defaultBodyAttributes,
-            },
+            bodyAttributes: {},
             headComponents: [
-                ...(config?.extends?.defaultHeadComponents || []),
-                ...(config?.defaultHeadComponents || []),
+                ...(config?.extends?.headComponents || []),
+                ...(config?.headComponents || []),
             ],
             content: React.createElement(PageWrapper, {
-                site: config.siteMetadata || {},
+                site: site,
                 theme: config.themeConfig || {},
                 page: page,
                 element: React.createElement(page.component, {
                     components: pageComponents,
-                    site: config.siteMetadata || {},
+                    site: site,
                     theme: config.themeConfig || {},
                     page: page,
-                    pages: ctx.pages,
                 }),
                 components: pageComponents,
-                pages: ctx.pages,
             }),
         };
         // Call the onRender hook
@@ -153,7 +150,7 @@ const build = async args => {
             page: page,
             setHtmlAttributes: attr => Object.assign(render.htmlAttributes, attr),
             setBodyAttributes: attr => Object.assign(render.bodyAttributes, attr),
-            setHeadComponents: comp => render.headComponents = [...render.headComponents, ...comp],
+            setHeadComponents: components => render.headComponents = [...render.headComponents, ...components],
         });
         // Generate HTML string from page content
         const content = generateHtml(render);
