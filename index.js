@@ -48,7 +48,7 @@ const resolveConfig = (args = []) => {
 
 const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content}) => {
     const element = React.createElement("html", {...htmlAttributes}, 
-        React.createElement("head", {}, ...headComponents),
+        React.createElement("head", {}, ...(headComponents.filter(Boolean))),
         React.createElement("body", {...bodyAttributes}, content),
     );
     return renderToStaticMarkup(element);
