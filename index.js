@@ -13,6 +13,11 @@ require("@babel/register")({
     presets: [
         "@babel/preset-react",
     ],
+    // Exclude all content from node_modules that is not redocus/theme, because this file
+    // contains the default theme configuration
+    ignore: [
+        filePath => filePath.includes("node_modules") && !filePath.includes("redocus/theme")
+    ],
 });
 
 const log = msg => console.log(`[redocus] ${msg}`);
