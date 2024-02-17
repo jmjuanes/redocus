@@ -2,23 +2,20 @@ const React = require("react");
 
 // @private default logo renderer
 const DefaultLogo = props => (
-    <React.Fragment>
-        <div className="font-black text-xl">
-            <span>{props.theme?.siteTitle || props.site.title}</span>
-        </div>
-        {props.site.version && (
-            <div className="flex items-center font-bold text-2xs bg-neutral-100 px-2 py-1 rounded-lg">
-                <span>{props.site.version}</span>
-            </div>
-        )}
-    </React.Fragment>
+    <div className="font-black text-xl">
+        <span>{props.theme?.siteTitle || props.site.title}</span>
+    </div>
 );
 
 // @private default footer renderer
 const DefaultFooter = props => (
     <div className="text-sm text-neutral-600">
-        Designed by <a href="https://josemi.xyz" className="underline text-neutral-900 hover:text-neutral-950 font-medium">Josemi</a>. 
-        Source code available on <a href={props.site.repository} className="underline text-neutral-900 hover:text-neutral-950 font-medium">GitHub</a>. 
+        {props.theme?.footerMessage && (
+            <div>{props.theme.footerMessage}</div>
+        )}
+        {props.theme?.footerCopyright && (
+            <div>{props.theme.footerCopyright}</div>
+        )}
     </div>
 );
 
@@ -164,13 +161,10 @@ const ThemeWrapper = props => (
 
 // Default theme configuration
 module.exports = {
-    defaultHtmlAttributes: {
-        lang: "en",
-    },
-    defaultBodyAttributes: {
-        className: "bg-white m-0 p-0 font-inter text-gray-800 leading-normal",
-    },
-    defaultHeadComponents: [
+    // bodyAttributes: {
+    //     className: "bg-white m-0 p-0 font-inter text-gray-800 leading-normal",
+    // },
+    headComponents: [
         <meta charSet="utf-8" />,
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no" />,
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" />,
