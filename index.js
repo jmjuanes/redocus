@@ -70,7 +70,7 @@ const build = async args => {
     // Tiny helper method to execute a hook with the additional argument
     const callHook = async (listenerName, extraArgs = {}) => {
         if (typeof config[listenerName] === "function") {
-            await config[listenerName]({site, inputPath, outputPath, ...extraArgs});
+            await config[listenerName]({site, sourcePath, outputPath, ...extraArgs});
         }
     };
     // Initialize pages actions
