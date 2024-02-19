@@ -44,8 +44,8 @@ const SidebarLink = props => {
 
 // @private page navigation
 const PageNavigation = props => {
-    const prevPage = props.pages.find(p => p.url === props.page?.data?.prevPage);
-    const nextPage = props.pages.find(p => p.url === props.page?.data?.nextPage);
+    const prevPage = props?.site?.pages?.find(p => p.url === props.page?.data?.prevPage);
+    const nextPage = props?.site?.pages?.find(p => p.url === props.page?.data?.nextPage);
     return (
         <div className="mt-12 w-full grid grid-cols-2 gap-4">
             <div className="w-full">
