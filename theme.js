@@ -105,22 +105,53 @@ const DocsLayout = props => (
     </React.Fragment>
 );
 
+// @public Heading 1 component
+const Heading1 = props => (
+    <h1 className="border-b border-neutral-200 pb-2 text-3xl font-bold tracking-tight text-neutral-950 mt-10 first:mt-0 mb-6">
+        {props.children}
+    </h1>
+);
+
+// @public Heading 2 component
+const Heading2 = props => (
+    <h2 className="mt-8 first:mt-0 mb-6 text-neutral-950 text-2xl font-bold">{props.children}</h2>
+);
+
+// @public inline code component
+const InlineCode = props => (
+   <code className="font-mono text-sm font-bold">{`'`}{props.children}{`'`}</code> 
+);
+
+// @public block code component
+const BlockCode = props => {
+    const items = React.Children.toArray(props.children);
+    const code = items[0].props.children;
+    // const language = (items[0].props.className || "").replace("language-", "");
+    return (
+        <pre className="p-4 rounded-md bg-neutral-900 text-white text-sm overflow-auto mb-8">{code}</pre>
+    );
+};
+
 // @private common theme components
 const themeComponents = {
     "blockquote": props => <blockquote className="border-l-2 border-neutral-600 text-neutral-600 pl-3">{props.children}</blockquote>,
-    "h1": props => <h1 className="mt-8 mb-4 text-neutral-950 text-2xl font-bold">{props.children}</h1>,
-    "h2": props => <h2 className="mt-8 mb-4 text-neutral-950 text-xl font-bold">{props.children}</h2>,
-    "p": props => <p className="mt-6 mb-6">{props.children}</p>,
+    "h1": Heading1,
+    "h2": Heading2,
+    "p": props => <p className="mb-6">{props.children}</p>,
     "ul": props => <ul className="list-inside">{props.children}</ul>,
     "ol": props => <ol className="list-inside">{props.children}</ol>,
     "li": props => <li className="mb-3">{props.children}</li>,
-    "code": props => <code className="font-mono text-sm">{props.children}</code>,
-    "pre": props => <pre className="p-4 rounded-md bg-neutral-900 text-white overflow-auto mb-8">{props.children}</pre>,
+    "code": InlineCode,
+    "pre": BlockCode,
     "a": props => (
         <a {...props} className={`underline text-neutral-950 font-medium ${props.className || ""}`}>
             {props.children}
         </a>
     ),
+    "table": props => <table className="w-full">{props.children}</table>,
+    "tr": props => <tr className="m-0 border-t border-neutral-200 p-0 even:bg-neutral-100">{props.children}</tr>,
+    "th": props => <th className="border border-neutral-200 px-4 py-2 text-left font-bold">{props.children}</th>,
+    "td": props => <td className="border border-neutral-200 px-4 py-2 text-left">{props.children}</td>,
     Separator: () => <div className="my-8 h-px w-full bg-neutral-200" />,
     logo: DefaultLogo,
     footer: DefaultFooter,
@@ -159,8 +190,8 @@ const ThemeWrapper = props => (
     </div>
 );
 
-// Default theme configuration
-module.exports = {
+// @public Default theme configuration
+const defaultTheme = {
     // bodyAttributes: {
     //     className: "bg-white m-0 p-0 font-inter text-gray-800 leading-normal",
     // },
@@ -172,4 +203,12 @@ module.exports = {
     ],
     pageComponents: themeComponents,
     pageWrapper: ThemeWrapper,
+};
+
+module.exports = {
+    defaultTheme,
+    Heading1,
+    Heading2,
+    InlineCode,
+    BlockCode,
 };
