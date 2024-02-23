@@ -55,7 +55,10 @@ const generateHtml = ({htmlAttributes, headComponents, bodyAttributes, content})
 };
 
 const build = async args => {
-    const [mdx] = await importPackages(["@mdx-js/mdx"]);
+    const [mdx, remarkGfm] = await importPackages([
+        "@mdx-js/mdx",
+        "remark-gfm",
+    ]);
     const config = await resolveConfig(args);
     log("build started");
     const sourcePath = path.resolve(process.cwd(), config.source || config.input || "./pages");
@@ -79,7 +82,10 @@ const build = async args => {
         createPageFromMarkdownFile: async filePath => {
             const fileContent = await fs.readFile(filePath, "utf8");
             const {data, content} = matter(fileContent);
-            const component = await mdx.evaluate(content, {...runtime});
+            const component = await mdx.evaluate(content, {
+                ...runtime,
+                remarkPlugins: [remarkGfm.default],
+            });
             site.pages.push({
                 data: data,
                 component: component.default,
