@@ -64,10 +64,10 @@ const build = async args => {
     const sourcePath = path.resolve(process.cwd(), config.source || config.input || "./pages");
     const outputPath = path.resolve(process.cwd(), config.output || "./www");
     const site = {
+        ...(config.siteMetadata || {}),
         lang: config.lang || "en",
-        title: config.title || "",
-        description: config.description || "",
-        data: config.data || {},
+        title: config.title || config.siteMetadata?.title || "",
+        description: config.description || config?.siteMetadata?.description || "",
         pages: [],
     };
     // Tiny helper method to execute a hook with the additional argument
